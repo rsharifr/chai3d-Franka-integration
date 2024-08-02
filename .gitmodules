@@ -1,0 +1,3 @@
+[submodule "external/libfranka"]
+	path = external/libfranka
+	url = https://github.com/frankaemika/libfranka

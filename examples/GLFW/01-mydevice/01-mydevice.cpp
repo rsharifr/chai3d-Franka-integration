@@ -33,7 +33,7 @@
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
     LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-    POSSIBILITY OF SUCH DAMAGE. 
+    POSSIBILITY OF SUCH DAMAGE.
 
     \author    <http://www.chai3d.org>
     \author    Francois Conti
@@ -49,14 +49,16 @@
 using namespace chai3d;
 using namespace std;
 //------------------------------------------------------------------------------
-
+#include <execinfo.h> // for backtrace() and backtrace_symbols()
+#include <cstdlib>    // for free()
+#include <csignal>    // for SIGSEGV
 //------------------------------------------------------------------------------
 // GENERAL SETTINGS
 //------------------------------------------------------------------------------
 
 // stereo Mode
 /*
-    C_STEREO_DISABLED:            Stereo is disabled 
+    C_STEREO_DISABLED:            Stereo is disabled
     C_STEREO_ACTIVE:              Active stereo for OpenGL NVDIA QUADRO cards
     C_STEREO_PASSIVE_LEFT_RIGHT:  Passive stereo where L/R images are rendered next to each other
     C_STEREO_PASSIVE_TOP_BOTTOM:  Passive stereo where L/R images are rendered above each other
@@ -69,37 +71,36 @@ bool fullscreen = false;
 // mirrored display
 bool mirroredDisplay = false;
 
-
 //------------------------------------------------------------------------------
 // DECLARED VARIABLES
 //------------------------------------------------------------------------------
 
 // a world that contains all objects of the virtual environment
-cWorld* world;
+cWorld *world;
 
 // a camera to render the world in the window display
-cCamera* camera;
+cCamera *camera;
 
 // a light source to illuminate the objects in the world
 cDirectionalLight *light;
 
-// a small sphere (cursor) representing the haptic device 
-cShapeSphere* cursor;
+// a small sphere (cursor) representing the haptic device
+cShapeSphere *cursor;
 
 // a line representing the velocity vector of the haptic device
-cShapeLine* velocity;
+cShapeLine *velocity;
 
 // a haptic device handler
-cHapticDeviceHandler* handler;
+cHapticDeviceHandler *handler;
 
 // a pointer to the current haptic device
 cGenericHapticDevicePtr hapticDevice;
 
 // a label to display the haptic device model
-cLabel* labelHapticDeviceModel;
+cLabel *labelHapticDeviceModel;
 
 // a label to display the position [m] of the haptic device
-cLabel* labelHapticDevicePosition;
+cLabel *labelHapticDevicePosition;
 
 // a global variable to store the position [m] of the haptic device
 cVector3d hapticDevicePosition;
@@ -108,7 +109,7 @@ cVector3d hapticDevicePosition;
 cFontPtr font;
 
 // a label to display the rate [Hz] at which the simulation is running
-cLabel* labelRates;
+cLabel *labelRates;
 
 // a flag for using damping (ON/OFF)
 bool useDamping = false;
@@ -129,13 +130,13 @@ cFrequencyCounter freqCounterGraphics;
 cFrequencyCounter freqCounterHaptics;
 
 // haptic thread
-cThread* hapticsThread;
+cThread *hapticsThread;
 
 // a handle to window display context
-GLFWwindow* window = NULL;
+GLFWwindow *window = NULL;
 
 // current width of window
-int width  = 0;
+int width = 0;
 
 // current height of window
 int height = 0;
@@ -143,19 +144,18 @@ int height = 0;
 // swap interval for the display context (vertical synchronization)
 int swapInterval = 1;
 
-
 //------------------------------------------------------------------------------
 // DECLARED FUNCTIONS
 //------------------------------------------------------------------------------
 
 // callback when the window display is resized
-void windowSizeCallback(GLFWwindow* a_window, int a_width, int a_height);
+void windowSizeCallback(GLFWwindow *a_window, int a_width, int a_height);
 
 // callback when an error GLFW occurs
-void errorCallback(int error, const char* a_description);
+void errorCallback(int error, const char *a_description);
 
 // callback when a key is pressed
-void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, int a_mods);
+void keyCallback(GLFWwindow *a_window, int a_key, int a_scancode, int a_action, int a_mods);
 
 // this function renders the scene
 void updateGraphics(void);
@@ -166,7 +166,6 @@ void updateHaptics(void);
 // this function closes the application
 void close(void);
 
-
 //==============================================================================
 /*
     DEMO:   01-mydevice.cpp
@@ -175,17 +174,17 @@ void close(void);
     forces to your haptic device.
 
     In this example the application opens an OpenGL window and displays a
-    3D cursor for the device connected to your computer. If the user presses 
-    onto the user button (if available on your haptic device), the color of 
+    3D cursor for the device connected to your computer. If the user presses
+    onto the user button (if available on your haptic device), the color of
     the cursor changes from blue to green.
 
     In the main haptics loop function  "updateHaptics()" , the position,
-    orientation and user switch status are read at each haptic cycle. 
+    orientation and user switch status are read at each haptic cycle.
     Force and torque vectors are computed and sent back to the haptic device.
 */
 //==============================================================================
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     //--------------------------------------------------------------------------
     // INITIALIZATION
@@ -196,15 +195,19 @@ int main(int argc, char* argv[])
     cout << "CHAI3D" << endl;
     cout << "Demo: 01-mydevice" << endl;
     cout << "Copyright 2003-2016" << endl;
-    cout << "-----------------------------------" << endl << endl << endl;
-    cout << "Keyboard Options:" << endl << endl;
+    cout << "-----------------------------------" << endl
+         << endl
+         << endl;
+    cout << "Keyboard Options:" << endl
+         << endl;
     cout << "[1] - Enable/Disable potential field" << endl;
     cout << "[2] - Enable/Disable damping" << endl;
     cout << "[f] - Enable/Disable full screen mode" << endl;
     cout << "[m] - Enable/Disable vertical mirroring" << endl;
     cout << "[q] - Exit application" << endl;
-    cout << endl << endl;
-
+    cout << "This is a modified example code by RSR!!" << endl;
+    cout << endl
+         << endl;
 
     //--------------------------------------------------------------------------
     // OPENGL - WINDOW DISPLAY
@@ -222,7 +225,7 @@ int main(int argc, char* argv[])
     glfwSetErrorCallback(errorCallback);
 
     // compute desired size of window
-    const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
     int w = 0.8 * mode->height;
     int h = 0.5 * mode->height;
     int x = 0.5 * (mode->width - w);
@@ -280,7 +283,6 @@ int main(int argc, char* argv[])
     }
 #endif
 
-
     //--------------------------------------------------------------------------
     // WORLD - CAMERA - LIGHTING
     //--------------------------------------------------------------------------
@@ -296,9 +298,9 @@ int main(int argc, char* argv[])
     world->addChild(camera);
 
     // position and orient the camera
-    camera->set( cVector3d (0.5, 0.0, 0.0),    // camera position (eye)
-                 cVector3d (0.0, 0.0, 0.0),    // look at position (target)
-                 cVector3d (0.0, 0.0, 1.0));   // direction of the (up) vector
+    camera->set(cVector3d(0.5, 0.0, 0.0),  // camera position (eye)
+                cVector3d(0.0, 0.0, 0.0),  // look at position (target)
+                cVector3d(0.0, 0.0, 1.0)); // direction of the (up) vector
 
     // set the near and far clipping planes of the camera
     camera->setClippingPlanes(0.01, 10.0);
@@ -332,12 +334,11 @@ int main(int argc, char* argv[])
     world->addChild(cursor);
 
     // create small line to illustrate the velocity of the haptic device
-    velocity = new cShapeLine(cVector3d(0,0,0), 
-                              cVector3d(0,0,0));
+    velocity = new cShapeLine(cVector3d(0, 0, 0),
+                              cVector3d(0, 0, 0));
 
     // insert line inside world
     world->addChild(velocity);
-
 
     //--------------------------------------------------------------------------
     // HAPTIC DEVICE
@@ -371,7 +372,6 @@ int main(int argc, char* argv[])
     // if the device has a gripper, enable the gripper to simulate a user switch
     hapticDevice->setEnableGripperUserSwitch(true);
 
-
     //--------------------------------------------------------------------------
     // WIDGETS
     //--------------------------------------------------------------------------
@@ -387,11 +387,10 @@ int main(int argc, char* argv[])
     // create a label to display the position of haptic device
     labelHapticDevicePosition = new cLabel(font);
     camera->m_frontLayer->addChild(labelHapticDevicePosition);
-    
+
     // create a label to display the haptic and graphic rate of the simulation
     labelRates = new cLabel(font);
     camera->m_frontLayer->addChild(labelRates);
-
 
     //--------------------------------------------------------------------------
     // START SIMULATION
@@ -403,7 +402,6 @@ int main(int argc, char* argv[])
 
     // setup callback when application exits
     atexit(close);
-
 
     //--------------------------------------------------------------------------
     // MAIN GRAPHIC LOOP
@@ -443,10 +441,10 @@ int main(int argc, char* argv[])
 
 //------------------------------------------------------------------------------
 
-void windowSizeCallback(GLFWwindow* a_window, int a_width, int a_height)
+void windowSizeCallback(GLFWwindow *a_window, int a_width, int a_height)
 {
     // update window size
-    width  = a_width;
+    width = a_width;
     height = a_height;
 
     // update position of label
@@ -458,14 +456,14 @@ void windowSizeCallback(GLFWwindow* a_window, int a_width, int a_height)
 
 //------------------------------------------------------------------------------
 
-void errorCallback(int a_error, const char* a_description)
+void errorCallback(int a_error, const char *a_description)
 {
     cout << "Error: " << a_description << endl;
 }
 
 //------------------------------------------------------------------------------
 
-void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, int a_mods)
+void keyCallback(GLFWwindow *a_window, int a_key, int a_scancode, int a_action, int a_mods)
 {
     // filter calls that only include a key press
     if ((a_action != GLFW_PRESS) && (a_action != GLFW_REPEAT))
@@ -506,10 +504,10 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
         fullscreen = !fullscreen;
 
         // get handle to monitor
-        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        GLFWmonitor *monitor = glfwGetPrimaryMonitor();
 
         // get information about monitor
-        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        const GLFWvidmode *mode = glfwGetVideoMode(monitor);
 
         // set fullscreen or window mode
         if (fullscreen)
@@ -544,7 +542,10 @@ void close(void)
     simulationRunning = false;
 
     // wait for graphics and haptics loops to terminate
-    while (!simulationFinished) { cSleepMs(100); }
+    while (!simulationFinished)
+    {
+        cSleepMs(100);
+    }
 
     // close haptic device
     hapticDevice->close();
@@ -573,7 +574,6 @@ void updateGraphics(void)
     // update position of label
     labelRates->setLocalPos((int)(0.5 * (width - labelRates->getWidth())), 15);
 
-
     /////////////////////////////////////////////////////////////////////
     // RENDER SCENE
     /////////////////////////////////////////////////////////////////////
@@ -590,7 +590,9 @@ void updateGraphics(void)
     // check for any OpenGL errors
     GLenum err;
     err = glGetError();
-    if (err != GL_NO_ERROR) cout << "Error:  %s\n" << gluErrorString(err);
+    if (err != GL_NO_ERROR)
+        cout << "Error:  %s\n"
+             << gluErrorString(err);
 }
 
 //------------------------------------------------------------------------------
@@ -598,21 +600,21 @@ void updateGraphics(void)
 void updateHaptics(void)
 {
     // simulation in now running
-    simulationRunning  = true;
+    simulationRunning = true;
     simulationFinished = false;
 
     // main haptic simulation loop
-    while(simulationRunning)
+    while (simulationRunning)
     {
         /////////////////////////////////////////////////////////////////////
         // READ HAPTIC DEVICE
         /////////////////////////////////////////////////////////////////////
 
-        // read position 
+        // read position
         cVector3d position;
         hapticDevice->getPosition(position);
-        
-        // read orientation 
+
+        // read orientation
         cMatrix3d rotation;
         hapticDevice->getRotation(rotation);
 
@@ -620,7 +622,7 @@ void updateHaptics(void)
         double gripperAngle;
         hapticDevice->getGripperAngleRad(gripperAngle);
 
-        // read linear velocity 
+        // read linear velocity
         cVector3d linearVelocity;
         hapticDevice->getLinearVelocity(linearVelocity);
 
@@ -644,11 +646,10 @@ void updateHaptics(void)
         hapticDevice->getUserSwitch(2, button2);
         hapticDevice->getUserSwitch(3, button3);
 
-
         /////////////////////////////////////////////////////////////////////
         // UPDATE 3D CURSOR MODEL
         /////////////////////////////////////////////////////////////////////
-       
+
         // update arrow
         velocity->m_pointA = position;
         velocity->m_pointB = cAdd(position, linearVelocity);
@@ -661,7 +662,7 @@ void updateHaptics(void)
         // the user-switch (ON = TRUE / OFF = FALSE)
         if (button0)
         {
-            cursor->m_material->setGreenMediumAquamarine(); 
+            cursor->m_material->setGreenMediumAquamarine();
         }
         else if (button1)
         {
@@ -683,7 +684,6 @@ void updateHaptics(void)
         // update global variable for graphic display update
         hapticDevicePosition = position;
 
-
         /////////////////////////////////////////////////////////////////////
         // COMPUTE AND APPLY FORCES
         /////////////////////////////////////////////////////////////////////
@@ -695,17 +695,17 @@ void updateHaptics(void)
         // desired orientation
         cMatrix3d desiredRotation;
         desiredRotation.identity();
-        
+
         // variables for forces
-        cVector3d force (0,0,0);
-        cVector3d torque (0,0,0);
+        cVector3d force(0, 0, 0);
+        cVector3d torque(0, 0, 0);
         double gripperForce = 0.0;
 
         // apply force field
         if (useForceField)
         {
             // compute linear force
-            double Kp = 25; // [N/m]
+            double Kp = 50; // [N/m]
             cVector3d forceField = Kp * (desiredPosition - position);
             force.add(forceField);
 
@@ -717,7 +717,7 @@ void updateHaptics(void)
             deltaRotation.toAxisAngle(axis, angle);
             torque = rotation * ((Kr * angle) * axis);
         }
-    
+
         // apply damping term
         if (useDamping)
         {
@@ -744,7 +744,7 @@ void updateHaptics(void)
         // signal frequency counter
         freqCounterHaptics.signal(1);
     }
-    
+
     // exit haptics thread
     simulationFinished = true;
 }

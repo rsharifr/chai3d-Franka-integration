@@ -44,6 +44,10 @@
 cmake_minimum_required (VERSION 3.0.0)
 project (CHAI3D)
 
+message("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+message("THIS IS CMAKE - ${PROJECT_NAME}")
+message("---")
+
 # version info
 file (READ ${PROJECT_SOURCE_DIR}/src/version VERSION)
 STRING (REGEX REPLACE ".*MAJOR=([0-9]+).*" "\\1" MAJOR_VERSION "${VERSION}")
@@ -84,8 +88,18 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE        ${PROJECT_SOURCE_DIR}/bin/${O
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${PROJECT_SOURCE_DIR}/bin/${OS}-${ARCH})
 
 # OpenGL dependency
+set(OpenGL_GL_PREFERENCE GLVND)
 find_package (OpenGL REQUIRED)
 include_directories (OPENGL_INCLUDE_DIR)
+
+
+
+# libfranka dependency
+set(LIBFRANKA_BASE_DIR ${PROJECT_SOURCE_DIR}/external/libfranka/)
+message("LIBFRANKA_BASE_DIR: ${LIBFRANKA_BASE_DIR}")
+add_subdirectory(${LIBFRANKA_BASE_DIR})
+
+
 
 # on non-Windows, DHD dependency
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows)
@@ -122,7 +136,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 # Linux global build options
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Linux)
   add_definitions (-DLINUX)
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -march=native -Wno-deprecated -std=c++0x")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -march=native -Wno-deprecated -std=c++0x -Wno-ignored-attributes") # RSR added -Wno-ignored-attributes to suppres Eigen warnings warnings
   set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -fPIC -march=native -Wno-deprecated")
 
 # Mac OS X global build options
@@ -168,7 +182,7 @@ file (GLOB_RECURSE source_jpeg      RELATIVE ${PROJECT_SOURCE_DIR} ${PROJECT_SOU
 file (GLOB_RECURSE source_png       RELATIVE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external/libpng/*.c       ${PROJECT_SOURCE_DIR}/external/libpng/*.h)
 file (GLOB_RECURSE source_pugixml   RELATIVE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external/pugixml/*.c      ${PROJECT_SOURCE_DIR}/external/pugixml/*.h)
 file (GLOB_RECURSE source_openal    RELATIVE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external/openal/*.c       ${PROJECT_SOURCE_DIR}/external/openal/*.h)
-file (GLOB_RECURSE source_theora    RELATIVE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external/theoraplayer/*.c ${PROJECT_SOURCE_DIR}/external/theoraplayer/*.cpp ${PROJECT_SOURCE_DIR}/external/theoraplayer/*.h)
+file (GLOB_RECURSE source_theora    RELATIVE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external/theoraplayer/*.c ${PROJECT_SOURCE_DIR}/external/theoraplayer/*.cpp  ${PROJECT_SOURCE_DIR}/external/theoraplayer/*.h)
 
 # platform-specific source files adjustments
 if (${CMAKE_SYSTEM_NAME} MATCHES Windows)
@@ -189,15 +203,33 @@ endforeach ()
 # build flags
 add_definitions (${PROJECT_DEFINITIONS} -DGLEW_STATIC -DAL_ALEXT_PROTOTYPES -DAL_BUILD_LIBRARY -DAL_LIBTYPE_STATIC -D__THEORA -D_LIB)
 
-# static library
-add_library (chai3d STATIC ${source} ${source_eigen} ${source_gif} ${source_glew} ${source_3ds} ${source_jpeg} ${source_png} ${source_pugixml} ${source_openal} ${source_theora})
+
+# FORCE BUILDING SHARED OR STATIC LIBRARY
+set(BUILD_SHARED_LIBS FALSE)
+
+if(BUILD_SHARED_LIBS)
+  # Shared library
+  message(STATUS "Building chai3d as shared library")
+  list(REMOVE_ITEM source_theora "external/theoraplayer/external/theora/lib/encoder_disabled.c") # This led to multiple definition errors
+  list(REMOVE_ITEM source_jpeg "external/libjpeg/src/jmemnobs.c") # This led to multiple definition errors
+  add_library (chai3d SHARED ${source} ${source_eigen} ${source_gif} ${source_glew} ${source_3ds} ${source_jpeg} ${source_png} ${source_pugixml} ${source_openal} ${source_theora})
+
+else()
+  # static library
+  message(STATUS "Building chai3d as static library")
+  add_library (chai3d STATIC ${source} ${source_eigen} ${source_gif} ${source_glew} ${source_3ds} ${source_jpeg} ${source_png} ${source_pugixml} ${source_openal} ${source_theora})  
+endif()
+
+
+# Link against the libfranka library 
+target_link_libraries(chai3d PUBLIC Franka::Franka)
 
 # library exports
 set (CHAI3D_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/src" "${PROJECT_SOURCE_DIR}/external/Eigen" "${PROJECT_SOURCE_DIR}/external/glew/include" "${OPENGL_INCLUDE_DIR}")
 set (CHAI3D_LIBRARIES chai3d ${OPENGL_LIBRARIES})
 set (CHAI3D_DEFINITIONS ${PROJECT_DEFINITIONS})
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows)
-  set (CHAI3D_LIBRARIES ${CHAI3D_LIBRARIES} drd)
+  # set (CHAI3D_LIBRARIES ${CHAI3D_LIBRARIES} drd) %% REZA REMOVED. WAS GIVING COMPILE ERROR (-ldrd not found)
   set (CHAI3D_LIBRARY_DIRS ${CHAI3D_LIBRARY_DIRS} ${DHD_LIBRARY_DIRS})
 else ()
   set (CHAI3D_LIBRARIES ${CHAI3D_LIBRARIES} winmm)
@@ -239,6 +271,9 @@ endif ()
 # export package
 #
 
+set(CMAKE_INSTALL_RPATH "${PROJECT_SOURCE_DIR}/external/libfranka")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # export package for use from the build tree
 export (TARGETS chai3d FILE ${PROJECT_BINARY_DIR}/CHAI3DTargets.cmake)
 export (PACKAGE CHAI3D)
@@ -253,3 +288,7 @@ set (CONF_SOURCE_DIR   ${CHAI3D_SOURCE_DIR})
 # package configuration and version files
 configure_file (CHAI3DConfig.cmake.in "${PROJECT_BINARY_DIR}/CHAI3DConfig.cmake" @ONLY)
 configure_file (CHAI3DConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/CHAI3DConfigVersion.cmake" @ONLY)
+
+message("---")
+message("ENF OF CMAKE - ${PROJECT_NAME}")
+message("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")

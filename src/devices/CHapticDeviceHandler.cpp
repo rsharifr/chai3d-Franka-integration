@@ -43,6 +43,7 @@
 
 //------------------------------------------------------------------------------
 #include "devices/CHapticDeviceHandler.h"
+#include <iostream> // TODO: REMOVE
 //------------------------------------------------------------------------------
 #if defined(WIN32) | defined(WIN64)
 #include <process.h>
@@ -66,6 +67,10 @@
 
 #if defined(C_ENABLE_SIXENSE_DEVICE_SUPPORT)
 #include "devices/CSixenseDevices.h"
+#endif
+
+#if defined(C_ENABLE_FRANKA_DEVICE_SUPPORT)
+#include "devices/CFrankaDevices.h"
 #endif
 
 #if defined(C_ENABLE_CUSTOM_DEVICE_SUPPORT)
@@ -203,7 +208,6 @@ void cHapticDeviceHandler::update()
     // search for 3D-Systems devices
     //--------------------------------------------------------------------------
     #if defined(C_ENABLE_PHANTOM_DEVICE_SUPPORT)
-
     // check for how many devices are available for this class of devices
     count = cPhantomDevice::getNumDevices();
 
@@ -211,6 +215,24 @@ void cHapticDeviceHandler::update()
     for (int i=0; i<count; i++)
     {
         device = cPhantomDevice::create(i);
+        m_devices[m_numDevices] = device;
+        m_numDevices++;
+    }
+
+    #endif
+
+
+    //--------------------------------------------------------------------------
+    // search for Franka device (need libfranka)
+    //--------------------------------------------------------------------------
+    #if defined(C_ENABLE_FRANKA_DEVICE_SUPPORT)
+    // check for how many devices are available for this class of devices
+    count = cFrankaDevice::getNumDevices();
+    std::cout << count << " Franka devices found" << std::endl;
+    // open all remaining devices
+    for (int i=0; i<count; i++)
+    {
+        device = cFrankaDevice::create(i);
         m_devices[m_numDevices] = device;
         m_numDevices++;
     }

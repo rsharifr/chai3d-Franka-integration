@@ -44,6 +44,7 @@
 //------------------------------------------------------------------------------
 #include "tools/CGenericTool.h"
 #include "world/CMesh.h"
+#include <iostream>
 //------------------------------------------------------------------------------
 using namespace std;
 //------------------------------------------------------------------------------
@@ -633,17 +634,21 @@ bool cGenericTool::start()
     // check if device is available
     if (m_hapticDevice == nullptr)
     {
+        cout<<"in cGenericTool::start: m_hapticDevice is null..."<<endl;
         return (C_ERROR);
     }
 
     // open connection to device
+    
     if (m_hapticDevice->open())
     {
         m_enabled = true;
+        cout<<"in cGenericTool::start: hapticDevice->open() succeeded... m_enabled: "<<m_enabled<<endl;
     }
     else
     {
         m_enabled = false;
+        cout<<"in cGenericTool::start: hapticDevice->open() failed... m_enabled: "<<m_enabled<<endl;
         return (C_ERROR);
     }
 
@@ -714,6 +719,9 @@ void cGenericTool::updateFromDevice()
     // check if device is available
     if ((m_hapticDevice == nullptr) || (!m_enabled)) 
     {
+        cout<<"in cGenericTool::updateFromDevice: m_hapticDevice is null or not enabled..."<<endl;
+        cout<<"     m_hapticDevice: "<<m_hapticDevice<<endl;
+        cout<<"     m_enabled: "<<m_enabled<<endl;
         cSleepMs(1);
         return; 
     }

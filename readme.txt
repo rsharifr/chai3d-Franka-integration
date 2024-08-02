@@ -1,3 +1,10 @@
+Project forked from https://github.com/chai3d/chai3d.git
+
+Support for Franka FR3 is added to chai3d.
+
+The tested versions were: chai3d v3.2.0. libfranka v0.13.3 (with libfranka-common @dd768c8).
+
+
 
 
 CHAI3D - The Open Source Haptic Framework

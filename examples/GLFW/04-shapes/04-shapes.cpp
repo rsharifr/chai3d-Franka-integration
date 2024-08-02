@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
     cout << "[f] - Enable/Disable full screen mode" << endl;
     cout << "[m] - Enable/Disable vertical mirroring" << endl;
     cout << "[q] - Exit application" << endl;
+    cout << "THIS IS A MODIFIED EXAMPLE BY RSR." << endl;
     cout << endl << endl;
 
    
