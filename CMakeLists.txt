@@ -97,6 +97,8 @@ include_directories (OPENGL_INCLUDE_DIR)
 # libfranka dependency
 set(LIBFRANKA_BASE_DIR ${PROJECT_SOURCE_DIR}/external/libfranka/)
 message("LIBFRANKA_BASE_DIR: ${LIBFRANKA_BASE_DIR}")
+set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
+set(CMAKE_BUILD_TYPE Release)
 add_subdirectory(${LIBFRANKA_BASE_DIR})
 
 
