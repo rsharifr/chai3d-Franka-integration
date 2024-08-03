@@ -4,8 +4,17 @@ Support for Franka FR3 is added to chai3d.
 
 The tested versions were: chai3d v3.2.0. libfranka v0.13.3 (with libfranka-common @dd768c8).
 
+To make the project:
+mkdir build
+cd build
+cmake ..
+cmake --build .
+
+The cmake also builds the libfranka library as a part of the build process and links to it.
 
 
+
+############################################################
 
 CHAI3D - The Open Source Haptic Framework
 -----------------------------------------
